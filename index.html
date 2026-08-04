@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnóstico Comercial | FNW-LST</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        :root {
+            --bg-dark: #09090b;
+            --card-bg: #18181b;
+            --accent: #38bdf8;
+            --accent-hover: #0284c7;
+            --text-main: #f8fafc;
+            --text-muted: #d4d4d8;
+            --border: #3f3f46;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .progress-container { position: fixed; top: 0; left: 0; width: 100%; height: 4px; background: var(--bg-dark); z-index: 1000; }
+        .progress-bar { height: 100%; background: var(--accent); width: 0%; transition: width 0.4s ease; }
+
+        .wizard-container { width: 100%; max-width: 600px; padding: 40px; box-sizing: border-box; }
+        .wizard-step { display: none; opacity: 0; transform: translateY(20px); transition: all 0.5s ease; }
+        .wizard-step.active { display: block; opacity: 1; transform: translateY(0); }
+
+        .question-title { font-size: 24px; font-weight: 800; margin-bottom: 10px; color: var(--text-main); line-height: 1.3; }
+        .question-subtitle { font-size: 15px; color: var(--text-muted); margin-bottom: 30px; }
+
+        input[type="text"], input[type="number"], input[type="tel"], select {
+            width: 100%; padding: 16px 20px; font-size: 18px; background: transparent; border: none;
+            border-bottom: 2px solid var(--border); color: var(--text-main); margin-bottom: 30px;
+            outline: none; transition: border-color 0.3s; font-family: 'Inter', sans-serif;
+        }
+        input:focus, select:focus { border-bottom-color: var(--accent); }
+        select option { background-color: var(--card-bg); color: var(--text-main); font-size: 16px; }
+
+        .btn-nav { background-color: var(--accent); color: #fff; border: none; padding: 16px 30px; font-size: 16px; font-weight: 800; border-radius: 8px; cursor: pointer; transition: all 0.3s; text-transform: uppercase; }
+        .btn-nav:hover { background-color: var(--accent-hover); transform: translateY(-2px); }
+        .btn-back { background: transparent; color: var(--text-muted); font-size: 14px; border: none; cursor: pointer; padding: 10px; margin-right: 15px; }
+        .btn-back:hover { color: var(--text-main); }
+
+        .option-box { display: block; background: var(--card-bg); border: 1px solid var(--border); padding: 20px; border-radius: 12px; margin-bottom: 15px; cursor: pointer; transition: all 0.3s; }
+        .option-box:hover { border-color: rgba(56, 189, 248, 0.5); }
+        .option-box input { display: none; }
+        .option-box.selected { border-color: var(--accent); background: rgba(56, 189, 248, 0.1); }
+        .option-title { font-size: 16px; font-weight: 800; color: #fff; margin-bottom: 5px; display: block; }
+        .option-desc { font-size: 14px; color: var(--text-muted); line-height: 1.4; }
+
+        .loading-screen { text-align: center; display: none; }
+        .spinner { width: 50px; height: 50px; border: 4px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px auto; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        /* DASHBOARD FINAL */
+        .dashboard-container { display: none; width: 100%; max-width: 1200px; padding: 40px 20px; box-sizing: border-box; align-items: start; }
+        .grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        @media (max-width: 900px) { .grid-layout { grid-template-columns: 1fr; } }
+
+        .card-panel { background-color: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 30px; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
+        .dashboard-header { margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+        .dashboard-header h2 { font-size: 22px; margin:0 0 5px 0; color: var(--text-main); font-weight: 800; }
+        .dashboard-header h2 span { color: var(--accent); }
+        .dashboard-header p { margin:0; color: var(--text-muted); font-size: 14px; }
+
+        input[type=range] { accent-color: var(--accent); width: 100%; margin: 15px 0; cursor: pointer; }
+        
+        .grid-results { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; }
+        .result-card { background: var(--bg-dark); border: 1px solid var(--border); padding: 20px; border-radius: 8px; text-align: center; }
+        .result-label { font-size: 11px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; display: block; font-weight: 600; }
+        .result-value { font-size: 22px; font-weight: 800; color: var(--text-main); }
+        .result-value.highlight { color: var(--accent); }
+        .result-value.warning { color: var(--warning); }
+
+        .proposal-card { background: var(--bg-dark); border: 1px solid var(--accent); padding: 25px; border-radius: 12px; margin-bottom: 20px; text-align: left; }
+        .comparison-box { background: rgba(56, 189, 248, 0.05); border: 1px solid var(--border); border-radius: 8px; padding: 18px; margin-top: 20px; }
+        
+        .action-btns { display: flex; flex-direction: column; gap: 10px; }
+        .btn-ws { background-color: #25D366; color: #fff; border: none; padding: 16px; border-radius: 8px; font-weight: 800; cursor: pointer; text-transform: uppercase; font-size: 13px; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-ws:hover { background-color: #128C7E; }
+        
+        .pdf-btns { display: flex; gap: 10px; }
+        .btn-pdf { flex: 1; background-color: transparent; border: 1px solid var(--border); color: var(--text-main); padding: 14px; border-radius: 8px; font-weight: 600; cursor: pointer; text-transform: uppercase; font-size: 12px; transition: 0.3s; }
+        .btn-pdf:hover { border-color: var(--text-muted); }
+
+        /* MODO GUIADO */
+        .guided-mode .guided-step { opacity: 0.25; filter: grayscale(80%); pointer-events: none; transition: all 0.4s ease; }
+        .guided-mode .guided-step.unlocked { opacity: 1; filter: grayscale(0%); pointer-events: auto; }
+        .btn-toggle-guide { width: auto; padding: 6px 12px; font-size: 11px; font-weight: bold; background: transparent; border: 1px solid var(--accent); color: var(--accent); border-radius: 20px; margin-top: 0; cursor: pointer; }
+        .btn-toggle-guide.off { border-color: var(--border); color: var(--text-muted); }
+
+        /* EXTRATO DE TRANSPARÊNCIA */
+        .extrato-box {
+            background: rgba(255,255,255,0.03);
+            border: 1px dashed var(--border);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 25px;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+        .extrato-line { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .extrato-line.total { border-top: 1px dashed var(--border); padding-top: 8px; margin-top: 8px; font-weight: bold; color: var(--text-main); }
+
+        /* VARIÁVEIS PDF DINÂMICAS */
+        .pdf-claro-mode {
+            --bg-dark: #ffffff !important;
+            --card-bg: #f8fafc !important;
+            --text-main: #0f172a !important;
+            --text-muted: #475569 !important;
+            --border: #cbd5e1 !important;
+            background-color: var(--card-bg) !important;
+            color: var(--text-main) !important;
+        }
+        .pdf-escuro-mode {
+            background-color: #09090b !important;
+            color: #f8fafc !important;
+        }
+    </style>
+</head>
+<body>
+
+<div class="progress-container"><div class="progress-bar" id="progressBar"></div></div>
+
+<!-- WIZARD STEP-BY-STEP -->
+<div class="wizard-container" id="wizardContainer">
+    
+    <div class="wizard-step active" id="step-1">
+        <div class="question-title">Olá! Qual é o seu nome?</div>
+        <div class="question-subtitle">Vamos personalizar sua experiência.</div>
+        <input type="text" id="w_nome" placeholder="Digite seu nome ou cargo..." autocomplete="off">
+        <div><button class="btn-nav" onclick="nextStep(1)">Avançar ➔</button></div>
+    </div>
+
+    <div class="wizard-step" id="step-2">
+        <div class="question-title">Qual o nome da sua empresa?</div>
+        <div class="question-subtitle">E o CNPJ, se já tiver em mãos.</div>
+        <input type="text" id="w_empresa" placeholder="Nome do Negócio" style="margin-bottom: 15px;">
+        <input type="text" id="w_cnpj" placeholder="CNPJ (Opcional por agora)">
+        <div>
+            <button class="btn-back" onclick="prevStep(2)">Voltar</button>
+            <button class="btn-nav" onclick="nextStep(2)">Avançar ➔</button>
+        </div>
+    </div>
+
+    <div class="wizard-step" id="step-3">
+        <div class="question-title">Qual o seu WhatsApp?</div>
+        <div class="question-subtitle">Para receber a proposta formatada no final.</div>
+        <input type="tel" id="w_whatsapp" placeholder="Ex: 11 99999-9999">
+        <div>
+            <button class="btn-back" onclick="prevStep(3)">Voltar</button>
+            <button class="btn-nav" onclick="nextStep(3)">Avançar ➔</button>
+        </div>
+    </div>
+
+    <div class="wizard-step" id="step-4">
+        <div class="question-title">Qual é o seu Ticket Médio Atual?</div>
+        <div class="question-subtitle">Valor médio do produto ou serviço que você vende.</div>
+        <input type="number" id="w_ticket" placeholder="R$ 0,00">
+        <div>
+            <button class="btn-back" onclick="prevStep(4)">Voltar</button>
+            <button class="btn-nav" onclick="nextStep(4)">Avançar ➔</button>
+        </div>
+    </div>
+
+    <div class="wizard-step" id="step-5">
+        <div class="question-title">Como está a sua operação hoje?</div>
+        <div class="question-subtitle">Quantas vendas você faz por mês e qual o seu teto máximo de atendimento?</div>
+        <input type="number" id="w_atual" placeholder="Vendas Atuais por Mês" style="margin-bottom: 15px;">
+        <input type="number" id="w_capacidade" placeholder="Capacidade Máxima por Mês">
+        <div>
+            <button class="btn-back" onclick="prevStep(5)">Voltar</button>
+            <button class="btn-nav" onclick="nextStep(5)">Avançar ➔</button>
+        </div>
+    </div>
+
+    <div class="wizard-step" id="step-6">
+        <div class="question-title">Qual Escopo se encaixa melhor?</div>
+        <div class="question-subtitle">Selecione o modelo de entrega do seu ecossistema LST.</div>
+        
+        <label class="option-box selected" onclick="selectOption(this, 'institucional')">
+            <input type="radio" name="w_escopo" value="institucional" checked>
+            <span class="option-title">Institucional (Base Perene)</span>
+            <span class="option-desc">Estrutura base contínua, sem necessidade de troca constante de campanhas.</span>
+        </label>
+        
+        <label class="option-box" onclick="selectOption(this, 'sazonal')">
+            <input type="radio" name="w_escopo" value="sazonal">
+            <span class="option-title">Sazonal com Campanhas</span>
+            <span class="option-desc">Inclui atualizações periódicas acompanhando o calendário comercial.</span>
+        </label>
+
+        <label class="option-box" onclick="selectOption(this, 'ab')">
+            <input type="radio" name="w_escopo" value="ab">
+            <span class="option-title">Sazonal + Teste A/B (Alta Performance)</span>
+            <span class="option-desc">Duplo fluxo simultâneo para testar abordagens e otimizar conversão.</span>
+        </label>
+
+        <div style="margin-top: 20px;">
+            <button class="btn-back" onclick="prevStep(6)">Voltar</button>
+            <button class="btn-nav" onclick="nextStep(6)">Avançar ➔</button>
+        </div>
+    </div>
+
+    <div class="wizard-step" id="step-7">
+        <div class="question-title">Qual o prazo de parceria desejado?</div>
+        <div class="question-subtitle">Prazos maiores garantem reduções globais no Setup Total.</div>
+        
+        <select id="w_prazo" style="margin-bottom: 40px; padding: 20px; font-size: 16px;">
+            <option value="12">12 Meses (12% de Desconto Global - Recomendado)</option>
+            <option value="9">9 Meses (9% de Desconto Global)</option>
+            <option value="6">6 Meses (6% de Desconto Global)</option>
+            <option value="3">3 Meses (Sem desconto - Mínimo)</option>
+        </select>
+
+        <div>
+            <button class="btn-back" onclick="prevStep(7)">Voltar</button>
+            <button class="btn-nav" onclick="finalizarDiagnostico()">Gerar Diagnóstico</button>
+        </div>
+    </div>
+
+    <div class="loading-screen" id="loadingScreen">
+        <div class="spinner"></div>
+        <div class="question-title">Processando Diagnóstico...</div>
+        <div class="question-subtitle" style="margin-top: 10px;">Aplicando Engenharia Comercial FNW-LST.</div>
+    </div>
+</div>
+
+<!-- DASHBOARD FINAL -->
+<div class="dashboard-container guided-mode" id="dashboardContainer">
+    <div class="grid-layout">
+        
+        <!-- Painel de Simulação (Esquerda) -->
+        <div class="card-panel">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                <div class="dashboard-header" style="margin-bottom:0; padding-bottom:0; border:none;">
+                    <h2>Engenharia <span>Comercial</span></h2>
+                    <p>Defina o modelo financeiro da parceria.</p>
+                </div>
+                <button id="btnGuided" class="btn-toggle-guide" onclick="toggleGuidedMode()">👁️ Guiado: ON</button>
+            </div>
+
+            <div class="guided-step unlocked" id="guide-model">
+                <div class="model-selector">
+                    <label class="option-box" onclick="selectModelo('semsima');">
+                        <input type="radio" name="dash_modelo" value="semsima">
+                        <span class="option-title" style="color: var(--warning);">Alta Performance (Sem SIMA)</span>
+                        <span class="option-desc">Isenção total de Setup. Maior comissão fixa (33%) e mensalidade focada apenas no SLA de Manutenção.</span>
+                    </label>
+                    <label class="option-box selected" onclick="selectModelo('sima');">
+                        <input type="radio" name="dash_modelo" value="sima" checked>
+                        <span class="option-title" style="color: var(--accent);">Modelo SIMA (Recomendado)</span>
+                        <span class="option-desc">Dilua os custos de Setup na mensalidade e reduza a Comissão. Defina a proporção no slider abaixo.</span>
+                    </label>
+                </div>
+
+                <div id="boxSliderSetup" style="margin-bottom: 10px; padding-top: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                        <span style="font-size: 14px; font-weight: 600; color: var(--text-main);">Entrada de Setup à Vista:</span>
+                        <span id="dash_setup_val" style="font-size: 20px; font-weight: 800; color: var(--accent);">R$ 0</span>
+                    </div>
+                    <input type="range" id="dash_slider" min="0" max="10000" step="100" value="0" oninput="atualizarDashboard()">
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-bottom: 15px;">
+                        <span>R$ 0 (Diluir Tudo)</span>
+                        <span id="lbl_teto_setup">Teto Total: R$ 25.000</span>
+                    </div>
+                </div>
+
+                <!-- EXTRATO DE TRANSPARÊNCIA DA MATEMÁTICA -->
+                <div id="boxExtratoSima" class="extrato-box" style="display: none;">
+                    <!-- Preenchido via JS -->
+                </div>
+
+                <div class="grid-results">
+                    <div class="result-card">
+                        <span class="result-label">Comissão por Venda</span>
+                        <span class="result-value highlight" id="res_comissao">33.0%</span>
+                    </div>
+                    <div class="result-card">
+                        <span class="result-label" id="lbl_card_mensal">Mensalidade Total / Mês</span>
+                        <span class="result-value warning" id="res_mensalidade">R$ 1.800</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Espelho da Proposta (Direita) -->
+        <div class="card-panel guided-step" id="guide-proposal">
+            <div class="dashboard-header">
+                <h2>Proposta <span>Oficial</span></h2>
+                <p>Resumo executivo atualizado em tempo real.</p>
+            </div>
+
+            <div class="proposal-card" id="cardPropostaFinal">
+                <!-- Renderizado via JS -->
+            </div>
+
+            <div class="action-btns">
+                <button class="btn-ws" onclick="enviarPropostaWhatsApp()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                    Enviar Proposta via WhatsApp
+                </button>
+                <div class="pdf-btns">
+                    <button class="btn-pdf" onclick="gerarPDF('claro')">📄 PDF Claro</button>
+                    <button class="btn-pdf" onclick="gerarPDF('escuro')">📄 PDF Escuro</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    let totalSteps = 7;
+    let dadosLead = {};
+    let modoGuiado = true;
+    let maxSetupTeto = 0;
+    let slaMinimo = 1800;
+    let comissaoMinima = 10.0; // Teto Inferior Blindado
+    let comissaoMaxima = 33.0; // Teto Superior Blindado
+
+    function updateProgress(step) {
+        let percent = ((step - 1) / totalSteps) * 100;
+        document.getElementById('progressBar').style.width = percent + '%';
+    }
+
+    function nextStep(current) {
+        if(current === 1 && !document.getElementById('w_nome').value.trim()) return alert("Por favor, insira seu nome.");
+        if(current === 2 && !document.getElementById('w_empresa').value.trim()) return alert("Por favor, insira o nome da empresa.");
+        if(current === 3 && !document.getElementById('w_whatsapp').value.trim()) return alert("Por favor, insira seu WhatsApp.");
+        if(current === 4 && !document.getElementById('w_ticket').value) return alert("Insira seu ticket médio.");
+        if(current === 5) {
+            let atual = parseFloat(document.getElementById('w_atual').value);
+            let max = parseFloat(document.getElementById('w_capacidade').value);
+            if(isNaN(atual) || isNaN(max)) return alert("Preencha as vendas e capacidade.");
+            if(atual > max) return alert("Sua entrega atual não pode ser maior que a capacidade.");
+        }
+
+        document.getElementById(`step-${current}`).classList.remove('active');
+        setTimeout(() => {
+            document.getElementById(`step-${current + 1}`).classList.add('active');
+            updateProgress(current + 1);
+        }, 300);
+    }
+
+    function prevStep(current) {
+        document.getElementById(`step-${current}`).classList.remove('active');
+        setTimeout(() => {
+            document.getElementById(`step-${current - 1}`).classList.add('active');
+            updateProgress(current - 1);
+        }, 300);
+    }
+
+    function selectOption(element, value) {
+        document.querySelectorAll('.wizard-step .option-box').forEach(el => el.classList.remove('selected'));
+        element.classList.add('selected');
+        document.querySelector(`input[name="w_escopo"][value="${value}"]`).checked = true;
+    }
+
+    function selectModelo(val) {
+        document.querySelectorAll('.model-selector .option-box').forEach(el => el.classList.remove('selected'));
+        document.querySelector(`input[name="dash_modelo"][value="${val}"]`).closest('.option-box').classList.add('selected');
+        document.querySelector(`input[name="dash_modelo"][value="${val}"]`).checked = true;
+        atualizarDashboard();
+    }
+
+    function finalizarDiagnostico() {
+        dadosLead.nome = document.getElementById('w_nome').value.trim();
+        dadosLead.empresa = document.getElementById('w_empresa').value.trim();
+        dadosLead.cnpj = document.getElementById('w_cnpj').value.trim() || "Não informado";
+        dadosLead.whatsapp = document.getElementById('w_whatsapp').value.trim();
+        dadosLead.ticket = parseFloat(document.getElementById('w_ticket').value);
+        dadosLead.entregaAtual = parseFloat(document.getElementById('w_atual').value);
+        dadosLead.capacidadeMax = parseFloat(document.getElementById('w_capacidade').value);
+        dadosLead.escopo = document.querySelector('input[name="w_escopo"]:checked').value;
+        dadosLead.prazo = parseInt(document.getElementById('w_prazo').value);
+
+        document.getElementById('step-7').classList.remove('active');
+        document.getElementById('loadingScreen').style.display = 'block';
+        document.getElementById('progressBar').style.width = '100%';
+
+        setTimeout(() => {
+            document.getElementById('wizardContainer').style.display = 'none';
+            document.querySelector('.progress-container').style.display = 'none';
+            document.body.style.alignItems = 'flex-start'; 
+            document.getElementById('dashboardContainer').style.display = 'block';
+            
+            iniciarDashboard();
+        }, 1500);
+    }
+
+    function toggleGuidedMode() {
+        modoGuiado = !modoGuiado;
+        const btn = document.getElementById('btnGuided');
+        const container = document.getElementById('dashboardContainer');
+
+        if(modoGuiado) {
+            container.classList.add('guided-mode');
+            btn.innerText = '👁️ Guiado: ON';
+            btn.classList.remove('off');
+        } else {
+            container.classList.remove('guided-mode');
+            btn.innerText = '👁️ Guiado: OFF';
+            btn.classList.add('off');
+            desbloquearGuiado('guide-proposal');
+        }
+    }
+
+    function desbloquearGuiado(id) {
+        document.getElementById(id).classList.add('unlocked');
+    }
+
+    function iniciarDashboard() {
+        let multEscopo = dadosLead.escopo === 'sazonal' ? 1.6 : (dadosLead.escopo === 'ab' ? 1.8 : 1.0);
+        let descGlobal = dadosLead.prazo === 12 ? 0.12 : (dadosLead.prazo === 9 ? 0.09 : (dadosLead.prazo === 6 ? 0.06 : 0));
+        
+        let setupTotalBruto = Math.max(3000, Math.round(dadosLead.ticket * 1.5 / 500) * 500) * multEscopo;
+        maxSetupTeto = Math.round(setupTotalBruto * (1 - descGlobal));
+        
+        let slider = document.getElementById('dash_slider');
+        slider.max = maxSetupTeto;
+        slider.value = 0; 
+        
+        document.getElementById('lbl_teto_setup').innerText = `Teto Total: R$ ${maxSetupTeto.toLocaleString('pt-BR')}`;
+        
+        atualizarDashboard();
+    }
+
+    function atualizarDashboard() {
+        desbloquearGuiado('guide-proposal');
+
+        let isSima = document.querySelector('input[name="dash_modelo"]:checked').value === 'sima';
+        
+        let multEscopo = 1.0;
+        let nomeEscopo = "Institucional (Base Perene)";
+        if(dadosLead.escopo === 'sazonal') { multEscopo = 1.60; nomeEscopo = "Sazonal com Campanhas"; }
+        if(dadosLead.escopo === 'ab') { multEscopo = 1.80; nomeEscopo = "Sazonal com Teste A/B"; }
+
+        // SLA Base de Manutenção Blindado
+        let slaCalculado = Math.round((dadosLead.ticket * 0.35 * multEscopo) / 100) * 100;
+        let slaBase = Math.max(slaMinimo, slaCalculado); 
+
+        let setupUpfront = 0;
+        let setupDiluidoMes = 0;
+        let mensalidadeTotal = 0;
+        let comissaoCalc = 0;
+        let tipoModelo = "";
+
+        if (!isSima) {
+            document.getElementById('boxSliderSetup').style.display = 'none';
+            document.getElementById('boxExtratoSima').style.display = 'none';
+            
+            setupUpfront = 0;
+            setupDiluidoMes = 0;
+            mensalidadeTotal = slaBase; 
+            comissaoCalc = comissaoMaxima; // 33% 
+            tipoModelo = "Alta Performance (Sem SIMA)";
+        } else {
+            document.getElementById('boxSliderSetup').style.display = 'block';
+
+            setupUpfront = parseInt(document.getElementById('dash_slider').value);
+            
+            let saldoSetup = maxSetupTeto - setupUpfront;
+            setupDiluidoMes = saldoSetup / dadosLead.prazo;
+            
+            mensalidadeTotal = slaBase + setupDiluidoMes;
+            
+            // Nova Lógica de Comissão: Decresce de 33% até 10% (Piso)
+            let proporcaoPaga = setupUpfront / maxSetupTeto;
+            let variacaoComissao = comissaoMaxima - comissaoMinima; // 33 - 10 = 23
+            
+            comissaoCalc = comissaoMaxima - (variacaoComissao * proporcaoPaga); 
+            comissaoCalc = Math.max(comissaoMinima, comissaoCalc); // Trava mínima absoluta de 10%
+            
+            tipoModelo = "Modelo SIMA (Setup Flexível)";
+
+            if(saldoSetup > 0) {
+                document.getElementById('boxExtratoSima').style.display = 'block';
+                document.getElementById('boxExtratoSima').innerHTML = `
+                    <div style="margin-bottom: 12px;"><strong style="color: var(--accent); font-size: 14px;">Extrato de Transparência (Matemática FNW)</strong></div>
+                    <div class="extrato-line"><span>Custo Total de Implementação:</span> <span>R$ ${maxSetupTeto.toLocaleString('pt-BR')}</span></div>
+                    <div class="extrato-line"><span>(-) Sua Entrada à vista:</span> <span style="color: var(--warning);">- R$ ${setupUpfront.toLocaleString('pt-BR')}</span></div>
+                    <div class="extrato-line total" style="color: var(--accent);"><span>(=) Saldo que será diluído:</span> <span>R$ ${saldoSetup.toLocaleString('pt-BR')}</span></div>
+                    <div class="extrato-line" style="margin-top: 15px;"><span><strong>SLA Base de Manutenção:</strong></span> <span>R$ ${slaBase.toLocaleString('pt-BR')}</span></div>
+                    <div class="extrato-line"><span>(+) Parcela do Setup (R$ ${saldoSetup.toLocaleString('pt-BR')} ÷ ${dadosLead.prazo}x):</span> <span style="color: var(--warning);">+ R$ ${setupDiluidoMes.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></div>
+                    <div class="extrato-line total" style="color: #fff; font-size: 15px;"><span>(=) Mensalidade Final:</span> <span>R$ ${Math.round(mensalidadeTotal).toLocaleString('pt-BR')}</span></div>
+                `;
+            } else {
+                document.getElementById('boxExtratoSima').style.display = 'none';
+            }
+        }
+
+        dadosLead.finalIsSima = isSima;
+        dadosLead.finalSetupUpfront = setupUpfront;
+        dadosLead.finalSetupTotal = maxSetupTeto;
+        dadosLead.finalSetupDiluido = setupDiluidoMes;
+        dadosLead.finalSlaBase = slaBase;
+        dadosLead.finalMensal = Math.round(mensalidadeTotal);
+        dadosLead.finalComissao = comissaoCalc.toFixed(1) + "%";
+        dadosLead.finalNomeEscopo = nomeEscopo;
+        dadosLead.finalModelo = tipoModelo;
+
+        document.getElementById('dash_setup_val').innerText = 'R$ ' + setupUpfront.toLocaleString('pt-BR');
+        document.getElementById('res_comissao').innerText = dadosLead.finalComissao;
+        document.getElementById('res_mensalidade').innerText = 'R$ ' + Math.round(mensalidadeTotal).toLocaleString('pt-BR') + '/mês';
+
+        // Renderização da Proposta com a Nova Narrativa Executiva
+        document.getElementById('cardPropostaFinal').innerHTML = `
+            <div style="margin-bottom: 25px;">
+                <p style="font-size: 14px; color: var(--text-muted); margin: 0 0 6px 0;">Operação: <strong class="highlight-pdf" style="color:#fff;">${dadosLead.empresa}</strong> (${dadosLead.nome})</p>
+                <p style="font-size: 14px; color: var(--text-muted); margin: 0 0 6px 0;">Escopo: <strong class="highlight-pdf" style="color:#fff;">${nomeEscopo}</strong></p>
+                <p style="font-size: 14px; color: var(--text-muted); margin: 0 0 6px 0;">Vigência do Contrato: <strong class="highlight-pdf" style="color:#fff;">${dadosLead.prazo} Meses</strong></p>
+                <p style="font-size: 14px; color: var(--text-muted); margin: 0 0 6px 0;">Modelo de Negócio: <strong class="highlight-pdf" style="color: var(--accent);">${tipoModelo}</strong></p>
+            </div>
+            
+            <div style="background: rgba(255,255,255,0.03); padding: 22px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 25px;">
+                
+                ${isSima ? `
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px dashed rgba(161, 161, 170, 0.3);">
+                    <div style="display: flex; flex-direction: column;">
+                        <span style="font-size: 14px; color: var(--text-muted); font-weight: 600;">Investimento Setup à Vista:</span>
+                        <span style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Saldo Restante (${dadosLead.prazo}x de R$ ${Math.round(setupDiluidoMes).toLocaleString('pt-BR')}) será diluído.</span>
+                    </div>
+                    <strong class="highlight-pdf" style="color: var(--accent); font-size: 18px;">R$ ${setupUpfront.toLocaleString('pt-BR')}</strong>
+                </div>` : `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px dashed rgba(161, 161, 170, 0.3);">
+                    <span style="font-size: 14px; color: var(--text-muted); font-weight: 600;">Setup & Implementação:</span>
+                    <strong class="highlight-pdf" style="color: var(--warning); font-size: 16px;">Isento (R$ 0,00)</strong>
+                </div>`}
+
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+                    <div style="display: flex; flex-direction: column;">
+                        <span style="font-size: 14px; color: var(--text-muted); font-weight: 600;">Mensalidade Total:</span>
+                        <span style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">SLA de Manutenção (R$ ${Math.round(slaBase).toLocaleString('pt-BR')}) ${isSima ? '+ Setup Diluído' : ''}</span>
+                    </div>
+                    <strong class="highlight-pdf" style="color: #fff; font-size: 20px;">R$ ${Math.round(mensalidadeTotal).toLocaleString('pt-BR')}/mês</strong>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border);">
+                    <span style="font-size: 14px; color: var(--text-muted); font-weight: 600;">Comissão de Performance:</span>
+                    <strong class="highlight-pdf" style="color: var(--accent); font-size: 20px;">${dadosLead.finalComissao} por venda</strong>
+                </div>
+            </div>
+
+            <!-- NOVA NARRATIVA EXECUTIVA (FOCO EM EFICIÊNCIA, NÃO EM VENDER LEADS) -->
+            <div class="comparison-box">
+                <strong class="highlight-pdf" style="color: var(--accent); font-size: 13px; display: block; margin-bottom: 10px; text-transform: uppercase;">O Impacto da Engenharia Comercial FNW-LST</strong>
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px; line-height: 1.5;">O nosso ecossistema substitui o esforço operacional exaustivo por diagnóstico em escala, blindando o tempo da sua equipe e maximizando a taxa de fechamento.</p>
+                
+                <div style="background: rgba(0,0,0,0.4); padding: 15px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">
+                    <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 10px; align-items: center;">
+                        <span style="color: var(--text-muted);">Sem Inteligência (Modelo Padrão):</span>
+                        <strong style="color: var(--danger); font-size: 12px; font-weight: normal; text-align: right;">Desgaste com curiosos, ciclo longo, conversão baixa</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 13px; align-items: center;">
+                        <span style="color: var(--text-main);">Com Ecossistema FNW:</span>
+                        <strong class="highlight-pdf" style="color: var(--success); font-size: 13px; text-align: right;">Diagnóstico automatizado, foco exclusivo em fechamento</strong>
+                    </div>
+                </div>
+                <p style="font-size: 13px; color: var(--success); text-align: center; margin: 15px 0 0 0;">💡 Otimização de tempo e recursos operacionais gerando previsibilidade.</p>
+            </div>
+        `;
+    }
+
+    function enviarPropostaWhatsApp() {
+        let setupTxt = !dadosLead.finalIsSima 
+            ? `Totalmente Isento (R$ 0,00)` 
+            : `R$ ${dadosLead.finalSetupUpfront.toLocaleString('pt-BR')} (Entrada à vista)`;
+
+        let txt = `*PROPOSTA COMERCIAL | FNW-LST*%0A`+
+            `━━━━━━━━━━━━━━━━━━━━━━━%0A`+
+            `🏢 *Empresa:* ${dadosLead.empresa}%0A`+
+            `👤 *Responsável:* ${dadosLead.nome}%0A`+
+            `━━━━━━━━━━━━━━━━━━━━━━━%0A%0A`+
+            `🎯 *O IMPACTO DA ENGENHARIA FNW*%0A`+
+            `Nosso ecossistema substitui o esforço comercial exaustivo por diagnóstico e qualificação em escala. Blindamos o tempo da sua equipe para que ela foque apenas no que importa: fechamento e previsibilidade.%0A%0A`+
+            `💼 *CONDIÇÕES DA PARCERIA*%0A`+
+            `• Modelo: ${dadosLead.finalModelo}%0A`+
+            `• Vigência: ${dadosLead.prazo} Meses%0A`+
+            `• Escopo: ${dadosLead.finalNomeEscopo}%0A%0A`+
+            `💰 *INVESTIMENTO E PERFORMANCE*%0A`+
+            `• Setup Inicial: ${setupTxt}%0A`+
+            `• Mensalidade Total: R$ ${dadosLead.finalMensal.toLocaleString('pt-BR')}/mês%0A`+
+            `  _(SLA de Manutenção ${dadosLead.finalIsSima ? `+ Diluição do Setup` : ''})_%0A`+
+            `• Comissão por Venda: ${dadosLead.finalComissao}%0A%0A`+
+            `Aguardamos sua aprovação para emissão da minuta oficial de contrato.`;
+        
+        window.open(`https://api.whatsapp.com/send?phone=554899129069&text=${txt}`, '_blank');
+    }
+
+    function gerarPDF(tema) {
+        const elemento = document.getElementById('cardPropostaFinal');
+        
+        if(tema === 'claro') elemento.classList.add('pdf-claro-mode');
+        else elemento.classList.add('pdf-escuro-mode');
+
+        const opt = {
+            margin:       10,
+            filename:     `Proposta_FNW_${dadosLead.empresa.replace(/\s+/g,'_')}.pdf`,
+            image:        { type: 'jpeg', quality: 1 },
+            html2canvas:  { scale: 2, useCORS: true, backgroundColor: tema === 'claro' ? '#ffffff' : '#09090b' },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        html2pdf().set(opt).from(elemento).save().then(() => {
+            elemento.classList.remove('pdf-claro-mode');
+            elemento.classList.remove('pdf-escuro-mode');
+        });
+    }
+</script>
+
+</body>
+</html>
