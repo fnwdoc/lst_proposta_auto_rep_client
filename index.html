@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Diagnóstico Comercial | FNW-LST</title>
+    <title>Proposta Comercial FNW-LST | Autoatendimento</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         :root {
             --bg-dark: #09090b;
@@ -15,9 +14,9 @@
             --text-main: #f8fafc;
             --text-muted: #d4d4d8;
             --border: #3f3f46;
-            --success: #10b981;
-            --warning: #f59e0b;
+            --warning: #f59e0b; /* Laranja/Amarelo padrão da marca */
             --danger: #ef4444;
+            --success: #10b981;
         }
 
         body {
@@ -30,7 +29,23 @@
             align-items: center;
             min-height: 100vh;
             overflow-x: hidden;
+            transition: background-color 0.2s;
         }
+
+        .brand-header {
+            position: absolute;
+            top: 30px;
+            left: 40px;
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--text-main);
+            letter-spacing: -0.5px;
+            z-index: 100;
+        }
+        .brand-header span { color: var(--accent); }
+        .sub-brand { font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 4px; letter-spacing: 0.5px; text-transform: uppercase; }
+
+        @media (max-width: 900px) { .brand-header { top: 20px; left: 20px; font-size: 16px; } }
 
         .progress-container { position: fixed; top: 0; left: 0; width: 100%; height: 4px; background: var(--bg-dark); z-index: 1000; }
         .progress-bar { height: 100%; background: var(--accent); width: 0%; transition: width 0.4s ease; }
@@ -59,15 +74,18 @@
         .option-box:hover { border-color: rgba(56, 189, 248, 0.5); }
         .option-box input { display: none; }
         .option-box.selected { border-color: var(--accent); background: rgba(56, 189, 248, 0.1); }
-        .option-title { font-size: 16px; font-weight: 800; color: #fff; margin-bottom: 5px; display: block; }
+        .option-title { font-size: 16px; font-weight: 800; color: var(--text-main); margin-bottom: 5px; display: block; }
         .option-desc { font-size: 14px; color: var(--text-muted); line-height: 1.4; }
+
+        .grid-options { display: flex; gap: 15px; margin-bottom: 30px; }
+        .grid-options .option-box { flex: 1; text-align: center; margin-bottom: 0; padding: 15px; }
 
         .loading-screen { text-align: center; display: none; }
         .spinner { width: 50px; height: 50px; border: 4px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px auto; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
 
         /* DASHBOARD FINAL */
-        .dashboard-container { display: none; width: 100%; max-width: 1200px; padding: 40px 20px; box-sizing: border-box; align-items: start; }
+        .dashboard-container { display: none; width: 100%; max-width: 1200px; padding: 40px 20px; box-sizing: border-box; align-items: start; margin-top: 50px; }
         .grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
         @media (max-width: 900px) { .grid-layout { grid-template-columns: 1fr; } }
 
@@ -93,64 +111,55 @@
         .btn-ws { background-color: #25D366; color: #fff; border: none; padding: 16px; border-radius: 8px; font-weight: 800; cursor: pointer; text-transform: uppercase; font-size: 13px; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px; }
         .btn-ws:hover { background-color: #128C7E; }
         
-        .pdf-btns { display: flex; gap: 10px; }
-        .btn-pdf { flex: 1; background-color: transparent; border: 1px solid var(--border); color: var(--text-main); padding: 14px; border-radius: 8px; font-weight: 600; cursor: pointer; text-transform: uppercase; font-size: 12px; transition: 0.3s; }
-        .btn-pdf:hover { border-color: var(--text-muted); }
-
         /* MODO GUIADO */
         .guided-mode .guided-step { opacity: 0.25; filter: grayscale(80%); pointer-events: none; transition: all 0.4s ease; }
         .guided-mode .guided-step.unlocked { opacity: 1; filter: grayscale(0%); pointer-events: auto; }
         .btn-toggle-guide { width: auto; padding: 6px 12px; font-size: 11px; font-weight: bold; background: transparent; border: 1px solid var(--accent); color: var(--accent); border-radius: 20px; margin-top: 0; cursor: pointer; }
         .btn-toggle-guide.off { border-color: var(--border); color: var(--text-muted); }
 
-        /* EXTRATO DE TRANSPARÊNCIA */
-        .extrato-box {
-            background: rgba(255,255,255,0.03);
-            border: 1px dashed var(--border);
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 25px;
-            font-size: 13px;
-            color: var(--text-muted);
-        }
+        .extrato-box { background: rgba(255,255,255,0.03); border: 1px dashed var(--border); border-radius: 8px; padding: 15px; margin-bottom: 25px; font-size: 13px; color: var(--text-muted); }
         .extrato-line { display: flex; justify-content: space-between; margin-bottom: 8px; }
         .extrato-line.total { border-top: 1px dashed var(--border); padding-top: 8px; margin-top: 8px; font-weight: bold; color: var(--text-main); }
-
-        /* VARIÁVEIS PDF DINÂMICAS */
-        .pdf-claro-mode {
-            --bg-dark: #ffffff !important;
-            --card-bg: #f8fafc !important;
-            --text-main: #0f172a !important;
-            --text-muted: #475569 !important;
-            --border: #cbd5e1 !important;
-            background-color: var(--card-bg) !important;
-            color: var(--text-main) !important;
-        }
-        .pdf-escuro-mode {
-            background-color: #09090b !important;
-            color: #f8fafc !important;
-        }
     </style>
 </head>
 <body>
 
 <div class="progress-container"><div class="progress-bar" id="progressBar"></div></div>
 
+<!-- CABEÇALHO GLOBAL DA APLICAÇÃO -->
+<div class="brand-header">
+    Proposta Comercial <span>FNW-LST</span>
+    <div class="sub-brand">Autoatendimento</div>
+</div>
+
 <!-- WIZARD STEP-BY-STEP -->
 <div class="wizard-container" id="wizardContainer">
     
     <div class="wizard-step active" id="step-1">
-        <div class="question-title">Olá! Qual é o seu nome?</div>
-        <div class="question-subtitle">Vamos personalizar sua experiência.</div>
-        <input type="text" id="w_nome" placeholder="Digite seu nome ou cargo..." autocomplete="off">
-        <div><button class="btn-nav" onclick="nextStep(1)">Avançar ➔</button></div>
+        <div class="question-title">Bem-vindo à Plataforma!</div>
+        <div class="question-subtitle">Para personalizarmos a estrutura, quem é você?</div>
+        
+        <label class="option-box selected" onclick="selectOption(this, 'w_perfil', 'cliente')">
+            <input type="radio" name="w_perfil" value="cliente" checked>
+            <span class="option-title">Sou Cliente (Autoatendimento)</span>
+            <span class="option-desc">Estou simulando o cenário ideal para aplicar na minha empresa.</span>
+        </label>
+        
+        <label class="option-box" onclick="selectOption(this, 'w_perfil', 'representante')">
+            <input type="radio" name="w_perfil" value="representante">
+            <span class="option-title">Sou Representante / Closer FNW</span>
+            <span class="option-desc">Estou gerando uma proposta comercial para apresentar a um cliente.</span>
+        </label>
+
+        <div style="margin-top: 20px;">
+            <button class="btn-nav" onclick="nextStep(1)">Avançar ➔</button>
+        </div>
     </div>
 
     <div class="wizard-step" id="step-2">
-        <div class="question-title">Qual o nome da sua empresa?</div>
-        <div class="question-subtitle">E o CNPJ, se já tiver em mãos.</div>
-        <input type="text" id="w_empresa" placeholder="Nome do Negócio" style="margin-bottom: 15px;">
-        <input type="text" id="w_cnpj" placeholder="CNPJ (Opcional por agora)">
+        <div class="question-title">Qual é o nome do Responsável?</div>
+        <div class="question-subtitle">O seu nome (caso cliente) ou o nome do seu lead (caso representante).</div>
+        <input type="text" id="w_nome" placeholder="Digite o nome..." autocomplete="off">
         <div>
             <button class="btn-back" onclick="prevStep(2)">Voltar</button>
             <button class="btn-nav" onclick="nextStep(2)">Avançar ➔</button>
@@ -158,9 +167,10 @@
     </div>
 
     <div class="wizard-step" id="step-3">
-        <div class="question-title">Qual o seu WhatsApp?</div>
-        <div class="question-subtitle">Para receber a proposta formatada no final.</div>
-        <input type="tel" id="w_whatsapp" placeholder="Ex: 11 99999-9999">
+        <div class="question-title">Qual o nome da Empresa?</div>
+        <div class="question-subtitle">E o CNPJ, se já tiver em mãos.</div>
+        <input type="text" id="w_empresa" placeholder="Nome do Negócio" style="margin-bottom: 15px;">
+        <input type="text" id="w_cnpj" placeholder="CNPJ (Opcional por agora)">
         <div>
             <button class="btn-back" onclick="prevStep(3)">Voltar</button>
             <button class="btn-nav" onclick="nextStep(3)">Avançar ➔</button>
@@ -168,9 +178,9 @@
     </div>
 
     <div class="wizard-step" id="step-4">
-        <div class="question-title">Qual é o seu Ticket Médio Atual?</div>
-        <div class="question-subtitle">Valor médio do produto ou serviço que você vende.</div>
-        <input type="number" id="w_ticket" placeholder="R$ 0,00">
+        <div class="question-title">Qual o WhatsApp de Contato?</div>
+        <div class="question-subtitle">Telefone oficial para recebermos esta solicitação.</div>
+        <input type="tel" id="w_whatsapp" placeholder="Ex: 11 99999-9999">
         <div>
             <button class="btn-back" onclick="prevStep(4)">Voltar</button>
             <button class="btn-nav" onclick="nextStep(4)">Avançar ➔</button>
@@ -178,10 +188,9 @@
     </div>
 
     <div class="wizard-step" id="step-5">
-        <div class="question-title">Como está a sua operação hoje?</div>
-        <div class="question-subtitle">Quantas vendas você faz por mês e qual o seu teto máximo de atendimento?</div>
-        <input type="number" id="w_atual" placeholder="Vendas Atuais por Mês" style="margin-bottom: 15px;">
-        <input type="number" id="w_capacidade" placeholder="Capacidade Máxima por Mês">
+        <div class="question-title">Qual é o Ticket Médio Atual?</div>
+        <div class="question-subtitle">Valor médio do produto ou serviço ofertado.</div>
+        <input type="number" id="w_ticket" placeholder="R$ 0,00">
         <div>
             <button class="btn-back" onclick="prevStep(5)">Voltar</button>
             <button class="btn-nav" onclick="nextStep(5)">Avançar ➔</button>
@@ -189,34 +198,73 @@
     </div>
 
     <div class="wizard-step" id="step-6">
-        <div class="question-title">Qual Escopo se encaixa melhor?</div>
-        <div class="question-subtitle">Selecione o modelo de entrega do seu ecossistema LST.</div>
+        <div class="question-title">O raio-x da operação hoje.</div>
+        <div class="question-subtitle">Precisamos entender o volume do seu funil para projetar a conversão.</div>
         
-        <label class="option-box selected" onclick="selectOption(this, 'institucional')">
-            <input type="radio" name="w_escopo" value="institucional" checked>
-            <span class="option-title">Institucional (Base Perene)</span>
-            <span class="option-desc">Estrutura base contínua, sem necessidade de troca constante de campanhas.</span>
-        </label>
+        <label style="color: var(--text-main); font-size: 14px; margin-bottom: 10px; display: block; font-weight: 600;">Você já faz captação ativa de leads hoje?</label>
         
-        <label class="option-box" onclick="selectOption(this, 'sazonal')">
-            <input type="radio" name="w_escopo" value="sazonal">
-            <span class="option-title">Sazonal com Campanhas</span>
-            <span class="option-desc">Inclui atualizações periódicas acompanhando o calendário comercial.</span>
-        </label>
+        <div class="grid-options">
+            <label class="option-box" onclick="toggleLeads(true, this)">
+                <input type="radio" name="w_faz_captacao" value="sim">
+                <span class="option-title">Sim</span>
+            </label>
+            <label class="option-box selected" onclick="toggleLeads(false, this)">
+                <input type="radio" name="w_faz_captacao" value="nao" checked>
+                <span class="option-title">Não</span>
+            </label>
+        </div>
 
-        <label class="option-box" onclick="selectOption(this, 'ab')">
-            <input type="radio" name="w_escopo" value="ab">
-            <span class="option-title">Sazonal + Teste A/B (Alta Performance)</span>
-            <span class="option-desc">Duplo fluxo simultâneo para testar abordagens e otimizar conversão.</span>
-        </label>
+        <div id="boxLeadsBrutos" style="display: none;">
+            <label style="color: var(--text-muted); font-size: 13px; margin-bottom: 8px; display: block;">Quantos leads sem qualificação (brutos) entram por mês?</label>
+            <input type="number" id="w_leads_brutos" placeholder="Ex: 500">
+        </div>
 
-        <div style="margin-top: 20px;">
+        <div style="display: flex; gap: 15px; margin-top: 10px;">
+            <div style="flex: 1;">
+                <label style="color: var(--text-muted); font-size: 13px; margin-bottom: 8px; display: block;">Vendas Atuais/Mês</label>
+                <input type="number" id="w_atual" placeholder="Ex: 5">
+            </div>
+            <div style="flex: 1;">
+                <label style="color: var(--text-muted); font-size: 13px; margin-bottom: 8px; display: block;">Capacidade Máxima</label>
+                <input type="number" id="w_capacidade" placeholder="Ex: 20">
+            </div>
+        </div>
+
+        <div>
             <button class="btn-back" onclick="prevStep(6)">Voltar</button>
             <button class="btn-nav" onclick="nextStep(6)">Avançar ➔</button>
         </div>
     </div>
 
     <div class="wizard-step" id="step-7">
+        <div class="question-title">Qual Escopo se encaixa melhor?</div>
+        <div class="question-subtitle">Selecione o modelo de entrega do ecossistema LST.</div>
+        
+        <label class="option-box selected" onclick="selectOption(this, 'w_escopo', 'institucional')">
+            <input type="radio" name="w_escopo" value="institucional" checked>
+            <span class="option-title">Institucional (Base Perene)</span>
+            <span class="option-desc">Estrutura base contínua, sem necessidade de troca constante de campanhas.</span>
+        </label>
+        
+        <label class="option-box" onclick="selectOption(this, 'w_escopo', 'sazonal')">
+            <input type="radio" name="w_escopo" value="sazonal">
+            <span class="option-title">Sazonal com Campanhas</span>
+            <span class="option-desc">Inclui atualizações periódicas acompanhando o calendário comercial.</span>
+        </label>
+
+        <label class="option-box" onclick="selectOption(this, 'w_escopo', 'ab')">
+            <input type="radio" name="w_escopo" value="ab">
+            <span class="option-title">Sazonal + Teste A/B (Alta Performance)</span>
+            <span class="option-desc">Duplo fluxo simultâneo para testar abordagens e otimizar conversão.</span>
+        </label>
+
+        <div style="margin-top: 20px;">
+            <button class="btn-back" onclick="prevStep(7)">Voltar</button>
+            <button class="btn-nav" onclick="nextStep(7)">Avançar ➔</button>
+        </div>
+    </div>
+
+    <div class="wizard-step" id="step-8">
         <div class="question-title">Qual o prazo de parceria desejado?</div>
         <div class="question-subtitle">Prazos maiores garantem reduções globais no Setup Total.</div>
         
@@ -228,15 +276,15 @@
         </select>
 
         <div>
-            <button class="btn-back" onclick="prevStep(7)">Voltar</button>
-            <button class="btn-nav" onclick="finalizarDiagnostico()">Gerar Diagnóstico</button>
+            <button class="btn-back" onclick="prevStep(8)">Voltar</button>
+            <button class="btn-nav" onclick="finalizarDiagnostico()">Estruturar Proposta</button>
         </div>
     </div>
 
     <div class="loading-screen" id="loadingScreen">
         <div class="spinner"></div>
-        <div class="question-title">Processando Diagnóstico...</div>
-        <div class="question-subtitle" style="margin-top: 10px;">Aplicando Engenharia Comercial FNW-LST.</div>
+        <div class="question-title">Processando...</div>
+        <div class="question-subtitle" id="loadingSubtitle" style="margin-top: 10px;">Analisando volume de entrega e gargalos...</div>
     </div>
 </div>
 
@@ -264,7 +312,7 @@
                     <label class="option-box selected" onclick="selectModelo('sima');">
                         <input type="radio" name="dash_modelo" value="sima" checked>
                         <span class="option-title" style="color: var(--accent);">Modelo SIMA (Recomendado)</span>
-                        <span class="option-desc">Dilua os custos de Setup na mensalidade e reduza a Comissão. Defina a proporção no slider abaixo.</span>
+                        <span class="option-desc">Dilua os custos de Setup na mensalidade e reduza sua Comissão em até 69%. Defina a proporção no slider abaixo.</span>
                     </label>
                 </div>
 
@@ -280,7 +328,6 @@
                     </div>
                 </div>
 
-                <!-- EXTRATO DE TRANSPARÊNCIA DA MATEMÁTICA -->
                 <div id="boxExtratoSima" class="extrato-box" style="display: none;">
                     <!-- Preenchido via JS -->
                 </div>
@@ -305,19 +352,26 @@
                 <p>Resumo executivo atualizado em tempo real.</p>
             </div>
 
-            <div class="proposal-card" id="cardPropostaFinal">
-                <!-- Renderizado via JS -->
+            <!-- Box Wrapper exclusivo para o PDF -->
+            <div id="pdfCaptureArea">
+                <div class="proposal-card" id="cardPropostaFinal">
+                    <!-- Renderizado via JS -->
+                </div>
             </div>
 
             <div class="action-btns">
                 <button class="btn-ws" onclick="enviarPropostaWhatsApp()">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
-                    Enviar Proposta via WhatsApp
+                    Solicitar Minuta Oficial via WhatsApp
                 </button>
+                
+                <!-- BOTÕES DE PDF DESATIVADOS TEMPORARIAMENTE -->
+                <!--
                 <div class="pdf-btns">
                     <button class="btn-pdf" onclick="gerarPDF('claro')">📄 PDF Claro</button>
                     <button class="btn-pdf" onclick="gerarPDF('escuro')">📄 PDF Escuro</button>
                 </div>
+                -->
             </div>
         </div>
 
@@ -325,25 +379,37 @@
 </div>
 
 <script>
-    let totalSteps = 7;
+    let totalSteps = 8;
     let dadosLead = {};
     let modoGuiado = true;
     let maxSetupTeto = 0;
     let slaMinimo = 1800;
-    let comissaoMinima = 10.0; // Teto Inferior Blindado
-    let comissaoMaxima = 33.0; // Teto Superior Blindado
+    let comissaoMinima = 10.0;
+    let comissaoMaxima = 33.0;
 
     function updateProgress(step) {
         let percent = ((step - 1) / totalSteps) * 100;
         document.getElementById('progressBar').style.width = percent + '%';
     }
 
+    function toggleLeads(isAtivo, element) {
+        document.querySelectorAll('input[name="w_faz_captacao"]').forEach(el => el.closest('.option-box').classList.remove('selected'));
+        element.classList.add('selected');
+        element.querySelector('input').checked = true;
+        document.getElementById('boxLeadsBrutos').style.display = isAtivo ? 'block' : 'none';
+    }
+
     function nextStep(current) {
-        if(current === 1 && !document.getElementById('w_nome').value.trim()) return alert("Por favor, insira seu nome.");
-        if(current === 2 && !document.getElementById('w_empresa').value.trim()) return alert("Por favor, insira o nome da empresa.");
-        if(current === 3 && !document.getElementById('w_whatsapp').value.trim()) return alert("Por favor, insira seu WhatsApp.");
-        if(current === 4 && !document.getElementById('w_ticket').value) return alert("Insira seu ticket médio.");
-        if(current === 5) {
+        if(current === 2 && !document.getElementById('w_nome').value.trim()) return alert("Por favor, insira o nome.");
+        if(current === 3 && !document.getElementById('w_empresa').value.trim()) return alert("Por favor, insira a empresa.");
+        if(current === 4 && !document.getElementById('w_whatsapp').value.trim()) return alert("Por favor, insira o WhatsApp.");
+        if(current === 5 && !document.getElementById('w_ticket').value) return alert("Insira o ticket médio.");
+        if(current === 6) {
+            let fazCapt = document.querySelector('input[name="w_faz_captacao"]:checked').value === 'sim';
+            if (fazCapt) {
+                let brutos = parseInt(document.getElementById('w_leads_brutos').value);
+                if(isNaN(brutos) || brutos <= 0) return alert("Por favor, insira a média de leads brutos.");
+            }
             let atual = parseFloat(document.getElementById('w_atual').value);
             let max = parseFloat(document.getElementById('w_capacidade').value);
             if(isNaN(atual) || isNaN(max)) return alert("Preencha as vendas e capacidade.");
@@ -365,10 +431,11 @@
         }, 300);
     }
 
-    function selectOption(element, value) {
-        document.querySelectorAll('.wizard-step .option-box').forEach(el => el.classList.remove('selected'));
+    function selectOption(element, inputName, value) {
+        let step = element.closest('.wizard-step');
+        step.querySelectorAll('.option-box').forEach(el => el.classList.remove('selected'));
         element.classList.add('selected');
-        document.querySelector(`input[name="w_escopo"][value="${value}"]`).checked = true;
+        document.querySelector(`input[name="${inputName}"][value="${value}"]`).checked = true;
     }
 
     function selectModelo(val) {
@@ -379,19 +446,31 @@
     }
 
     function finalizarDiagnostico() {
+        dadosLead.perfil = document.querySelector('input[name="w_perfil"]:checked').value;
         dadosLead.nome = document.getElementById('w_nome').value.trim();
         dadosLead.empresa = document.getElementById('w_empresa').value.trim();
         dadosLead.cnpj = document.getElementById('w_cnpj').value.trim() || "Não informado";
         dadosLead.whatsapp = document.getElementById('w_whatsapp').value.trim();
         dadosLead.ticket = parseFloat(document.getElementById('w_ticket').value);
+        
+        dadosLead.fazCaptacao = document.querySelector('input[name="w_faz_captacao"]:checked').value === 'sim';
+        dadosLead.leadsBrutos = dadosLead.fazCaptacao ? parseInt(document.getElementById('w_leads_brutos').value) : 0;
+        
         dadosLead.entregaAtual = parseFloat(document.getElementById('w_atual').value);
         dadosLead.capacidadeMax = parseFloat(document.getElementById('w_capacidade').value);
         dadosLead.escopo = document.querySelector('input[name="w_escopo"]:checked').value;
         dadosLead.prazo = parseInt(document.getElementById('w_prazo').value);
 
-        document.getElementById('step-7').classList.remove('active');
+        document.getElementById('step-8').classList.remove('active');
         document.getElementById('loadingScreen').style.display = 'block';
+        
+        let subtitle = document.getElementById('loadingSubtitle');
         document.getElementById('progressBar').style.width = '100%';
+        document.getElementById('progressBar').style.transition = 'width 5s linear';
+
+        setTimeout(() => { subtitle.innerText = "Aplicando Engenharia Comercial FNW-LST..."; }, 1500);
+        setTimeout(() => { subtitle.innerText = "Calculando projeções de eficiência da equipe..."; }, 3000);
+        setTimeout(() => { subtitle.innerText = "Formatando Proposta Executiva Oficial..."; }, 4200);
 
         setTimeout(() => {
             document.getElementById('wizardContainer').style.display = 'none';
@@ -400,7 +479,7 @@
             document.getElementById('dashboardContainer').style.display = 'block';
             
             iniciarDashboard();
-        }, 1500);
+        }, 5000); 
     }
 
     function toggleGuidedMode() {
@@ -450,7 +529,6 @@
         if(dadosLead.escopo === 'sazonal') { multEscopo = 1.60; nomeEscopo = "Sazonal com Campanhas"; }
         if(dadosLead.escopo === 'ab') { multEscopo = 1.80; nomeEscopo = "Sazonal com Teste A/B"; }
 
-        // SLA Base de Manutenção Blindado
         let slaCalculado = Math.round((dadosLead.ticket * 0.35 * multEscopo) / 100) * 100;
         let slaBase = Math.max(slaMinimo, slaCalculado); 
 
@@ -467,7 +545,7 @@
             setupUpfront = 0;
             setupDiluidoMes = 0;
             mensalidadeTotal = slaBase; 
-            comissaoCalc = comissaoMaxima; // 33% 
+            comissaoCalc = comissaoMaxima; 
             tipoModelo = "Alta Performance (Sem SIMA)";
         } else {
             document.getElementById('boxSliderSetup').style.display = 'block';
@@ -479,12 +557,10 @@
             
             mensalidadeTotal = slaBase + setupDiluidoMes;
             
-            // Nova Lógica de Comissão: Decresce de 33% até 10% (Piso)
             let proporcaoPaga = setupUpfront / maxSetupTeto;
-            let variacaoComissao = comissaoMaxima - comissaoMinima; // 33 - 10 = 23
-            
+            let variacaoComissao = comissaoMaxima - comissaoMinima; 
             comissaoCalc = comissaoMaxima - (variacaoComissao * proporcaoPaga); 
-            comissaoCalc = Math.max(comissaoMinima, comissaoCalc); // Trava mínima absoluta de 10%
+            comissaoCalc = Math.max(comissaoMinima, comissaoCalc); 
             
             tipoModelo = "Modelo SIMA (Setup Flexível)";
 
@@ -504,6 +580,20 @@
             }
         }
 
+        // LÓGICA DO IMPACTO DE LEADS (COM A PALAVRA "POTENCIALMENTE")
+        let leadsTradicionais = 0;
+        let labelTradicional = "";
+        
+        if (dadosLead.fazCaptacao && dadosLead.leadsBrutos > 0) {
+            leadsTradicionais = dadosLead.leadsBrutos;
+            labelTradicional = "Seu Cenário Atual (Sem Filtro):";
+        } else {
+            leadsTradicionais = Math.round(dadosLead.entregaAtual / 0.0133);
+            labelTradicional = "Estimativa de Mercado (Sem Inteligência):";
+        }
+        
+        let leadsOtimizados = Math.round(leadsTradicionais * 0.27);
+
         dadosLead.finalIsSima = isSima;
         dadosLead.finalSetupUpfront = setupUpfront;
         dadosLead.finalSetupTotal = maxSetupTeto;
@@ -513,18 +603,21 @@
         dadosLead.finalComissao = comissaoCalc.toFixed(1) + "%";
         dadosLead.finalNomeEscopo = nomeEscopo;
         dadosLead.finalModelo = tipoModelo;
+        dadosLead.leadsTrad = leadsTradicionais;
+        dadosLead.leadsOtim = leadsOtimizados;
+        dadosLead.lblTradicional = labelTradicional;
 
         document.getElementById('dash_setup_val').innerText = 'R$ ' + setupUpfront.toLocaleString('pt-BR');
         document.getElementById('res_comissao').innerText = dadosLead.finalComissao;
         document.getElementById('res_mensalidade').innerText = 'R$ ' + Math.round(mensalidadeTotal).toLocaleString('pt-BR') + '/mês';
 
-        // Renderização da Proposta com a Nova Narrativa Executiva
+        // RENDERIZAÇÃO DA PROPOSTA
         document.getElementById('cardPropostaFinal').innerHTML = `
             <div style="margin-bottom: 25px;">
-                <p style="font-size: 14px; color: var(--text-muted); margin: 0 0 6px 0;">Operação: <strong class="highlight-pdf" style="color:#fff;">${dadosLead.empresa}</strong> (${dadosLead.nome})</p>
-                <p style="font-size: 14px; color: var(--text-muted); margin: 0 0 6px 0;">Escopo: <strong class="highlight-pdf" style="color:#fff;">${nomeEscopo}</strong></p>
-                <p style="font-size: 14px; color: var(--text-muted); margin: 0 0 6px 0;">Vigência do Contrato: <strong class="highlight-pdf" style="color:#fff;">${dadosLead.prazo} Meses</strong></p>
-                <p style="font-size: 14px; color: var(--text-muted); margin: 0 0 6px 0;">Modelo de Negócio: <strong class="highlight-pdf" style="color: var(--accent);">${tipoModelo}</strong></p>
+                <p style="font-size: 14px; color: var(--text-muted); margin: 0 0 6px 0;">Operação: <strong style="color: var(--text-main);">${dadosLead.empresa}</strong> (${dadosLead.nome})</p>
+                <p style="font-size: 14px; color: var(--text-muted); margin: 0 0 6px 0;">Escopo: <strong style="color: var(--text-main);">${nomeEscopo}</strong></p>
+                <p style="font-size: 14px; color: var(--text-muted); margin: 0 0 6px 0;">Vigência do Contrato: <strong style="color: var(--text-main);">${dadosLead.prazo} Meses</strong></p>
+                <p style="font-size: 14px; color: var(--text-muted); margin: 0 0 6px 0;">Modelo de Negócio: <strong style="color: var(--accent);">${tipoModelo}</strong></p>
             </div>
             
             <div style="background: rgba(255,255,255,0.03); padding: 22px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 25px;">
@@ -533,93 +626,99 @@
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px dashed rgba(161, 161, 170, 0.3);">
                     <div style="display: flex; flex-direction: column;">
                         <span style="font-size: 14px; color: var(--text-muted); font-weight: 600;">Investimento Setup à Vista:</span>
-                        <span style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Saldo Restante (${dadosLead.prazo}x de R$ ${Math.round(setupDiluidoMes).toLocaleString('pt-BR')}) será diluído.</span>
+                        ${setupDiluidoMes > 0 ? `<span style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Saldo Restante (${dadosLead.prazo}x de R$ ${Math.round(setupDiluidoMes).toLocaleString('pt-BR')}) será diluído.</span>` : ''}
                     </div>
-                    <strong class="highlight-pdf" style="color: var(--accent); font-size: 18px;">R$ ${setupUpfront.toLocaleString('pt-BR')}</strong>
+                    <strong style="color: var(--accent); font-size: 18px;">R$ ${setupUpfront.toLocaleString('pt-BR')}</strong>
                 </div>` : `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px dashed rgba(161, 161, 170, 0.3);">
-                    <span style="font-size: 14px; color: var(--text-muted); font-weight: 600;">Setup & Implementação:</span>
-                    <strong class="highlight-pdf" style="color: var(--warning); font-size: 16px;">Isento (R$ 0,00)</strong>
+                    <span style="font-size: 14px; color: var(--text-muted); font-weight: 600;">Setup de Implementação:</span>
+                    <strong style="color: var(--warning); font-size: 16px;">Isento (R$ 0,00)</strong>
                 </div>`}
 
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
                     <div style="display: flex; flex-direction: column;">
                         <span style="font-size: 14px; color: var(--text-muted); font-weight: 600;">Mensalidade Total:</span>
-                        <span style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">SLA de Manutenção (R$ ${Math.round(slaBase).toLocaleString('pt-BR')}) ${isSima ? '+ Setup Diluído' : ''}</span>
+                        <span style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">SLA de Manutenção (R$ ${Math.round(slaBase).toLocaleString('pt-BR')}) ${isSima && setupDiluidoMes > 0 ? '+ Setup Diluído' : ''}</span>
                     </div>
-                    <strong class="highlight-pdf" style="color: #fff; font-size: 20px;">R$ ${Math.round(mensalidadeTotal).toLocaleString('pt-BR')}/mês</strong>
+                    <strong style="color: var(--text-main); font-size: 20px;">R$ ${Math.round(mensalidadeTotal).toLocaleString('pt-BR')}/mês</strong>
                 </div>
 
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border);">
                     <span style="font-size: 14px; color: var(--text-muted); font-weight: 600;">Comissão de Performance:</span>
-                    <strong class="highlight-pdf" style="color: var(--accent); font-size: 20px;">${dadosLead.finalComissao} por venda</strong>
+                    <strong style="color: var(--accent); font-size: 20px;">${dadosLead.finalComissao} por venda</strong>
                 </div>
             </div>
 
-            <!-- NOVA NARRATIVA EXECUTIVA (FOCO EM EFICIÊNCIA, NÃO EM VENDER LEADS) -->
             <div class="comparison-box">
-                <strong class="highlight-pdf" style="color: var(--accent); font-size: 13px; display: block; margin-bottom: 10px; text-transform: uppercase;">O Impacto da Engenharia Comercial FNW-LST</strong>
+                <strong style="color: var(--accent); font-size: 13px; display: block; margin-bottom: 10px; text-transform: uppercase;">O Impacto da Engenharia Comercial FNW-LST</strong>
                 <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px; line-height: 1.5;">O nosso ecossistema substitui o esforço operacional exaustivo por diagnóstico em escala, blindando o tempo da sua equipe e maximizando a taxa de fechamento.</p>
                 
                 <div style="background: rgba(0,0,0,0.4); padding: 15px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">
                     <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 10px; align-items: center;">
-                        <span style="color: var(--text-muted);">Sem Inteligência (Modelo Padrão):</span>
-                        <strong style="color: var(--danger); font-size: 12px; font-weight: normal; text-align: right;">Desgaste com curiosos, ciclo longo, conversão baixa</strong>
+                        <span style="color: var(--text-muted);">${labelTradicional}</span>
+                        <strong style="color: var(--warning); font-size: 13px; font-weight: 800; text-align: right;">Potencialmente ~${leadsTradicionais} curiosos (desgaste)</strong>
                     </div>
                     <div style="display: flex; justify-content: space-between; font-size: 13px; align-items: center;">
                         <span style="color: var(--text-main);">Com Ecossistema FNW:</span>
-                        <strong class="highlight-pdf" style="color: var(--success); font-size: 13px; text-align: right;">Diagnóstico automatizado, foco exclusivo em fechamento</strong>
+                        <strong style="color: #fff; font-size: 13px; font-weight: 800; text-align: right;">Potencialmente ~${leadsOtimizados} qualificados direto no WhatsApp</strong>
                     </div>
                 </div>
-                <p style="font-size: 13px; color: var(--success); text-align: center; margin: 15px 0 0 0;">💡 Otimização de tempo e recursos operacionais gerando previsibilidade.</p>
+                <p style="font-size: 13px; color: var(--text-main); font-weight: 800; text-align: center; margin: 15px 0 0 0;">💡 Otimização real de tempo e recursos para as mesmas ${dadosLead.entregaAtual} vendas.</p>
             </div>
         `;
     }
 
     function enviarPropostaWhatsApp() {
         let setupTxt = !dadosLead.finalIsSima 
-            ? `Totalmente Isento (R$ 0,00)` 
+            ? `Isento (R$ 0,00)` 
             : `R$ ${dadosLead.finalSetupUpfront.toLocaleString('pt-BR')} (Entrada à vista)`;
 
-        let txt = `*PROPOSTA COMERCIAL | FNW-LST*%0A`+
+        let diluicaoTxt = dadosLead.finalIsSima && dadosLead.finalSetupDiluido > 0
+            ? `%0A  ↳ _SLA de Manutenção: R$ ${Math.round(dadosLead.finalSlaBase).toLocaleString('pt-BR')}_%0A  ↳ _Setup Diluído: R$ ${Math.round(dadosLead.finalSetupDiluido).toLocaleString('pt-BR')} (${dadosLead.prazo}x)_`
+            : `%0A  ↳ _SLA de Manutenção Base: R$ ${Math.round(dadosLead.finalSlaBase).toLocaleString('pt-BR')}_`;
+
+        let txtAbertura = "";
+        
+        if (dadosLead.perfil === 'cliente') {
+            txtAbertura = `*SOLICITAÇÃO DE PARCERIA | FNW-LST*%0A`+
             `━━━━━━━━━━━━━━━━━━━━━━━%0A`+
-            `🏢 *Empresa:* ${dadosLead.empresa}%0A`+
+            `Olá equipe FNW! Finalizei meu diagnóstico no autoatendimento e gostaria de avançar com o modelo que escolhi para minha operação.%0A%0A`+
+            `🏢 *Operação:* ${dadosLead.empresa}%0A`+
             `👤 *Responsável:* ${dadosLead.nome}%0A`+
-            `━━━━━━━━━━━━━━━━━━━━━━━%0A%0A`+
-            `🎯 *O IMPACTO DA ENGENHARIA FNW*%0A`+
-            `Nosso ecossistema substitui o esforço comercial exaustivo por diagnóstico e qualificação em escala. Blindamos o tempo da sua equipe para que ela foque apenas no que importa: fechamento e previsibilidade.%0A%0A`+
-            `💼 *CONDIÇÕES DA PARCERIA*%0A`+
+            `━━━━━━━━━━━━━━━━━━━━━━━%0A%0A`;
+        } else {
+            txtAbertura = `*PROPOSTA EXECUTIVA | FNW-LST*%0A`+
+            `━━━━━━━━━━━━━━━━━━━━━━━%0A`+
+            `Olá, *${dadosLead.nome}*! Tudo bem?%0AConforme conversamos, estruturei o cenário ideal para otimizar o tempo e os resultados da sua equipe comercial.%0A%0A`+
+            `🏢 *Operação:* ${dadosLead.empresa}%0A`+
+            `━━━━━━━━━━━━━━━━━━━━━━━%0A%0A`;
+        }
+
+        let txtMeio = `🎯 *O IMPACTO DA ENGENHARIA FNW*%0A`+
+            `Para bater sua meta de vendas sem desperdício de energia:%0A`+
+            `❌ *${dadosLead.lblTradicional}* Potencialmente ~${dadosLead.leadsTrad} curiosos (desgaste da equipe)%0A`+
+            `✅ *Com Ecossistema FNW:* Potencialmente ~${dadosLead.leadsOtim} qualificados direto no WhatsApp%0A`+
+            `_💡 As mesmas ${dadosLead.entregaAtual} vendas, com ~73% menos esforço operacional._%0A%0A`+
+            `💼 *DIRETRIZES DA PARCERIA*%0A`+
             `• Modelo: ${dadosLead.finalModelo}%0A`+
-            `• Vigência: ${dadosLead.prazo} Meses%0A`+
-            `• Escopo: ${dadosLead.finalNomeEscopo}%0A%0A`+
-            `💰 *INVESTIMENTO E PERFORMANCE*%0A`+
-            `• Setup Inicial: ${setupTxt}%0A`+
-            `• Mensalidade Total: R$ ${dadosLead.finalMensal.toLocaleString('pt-BR')}/mês%0A`+
-            `  _(SLA de Manutenção ${dadosLead.finalIsSima ? `+ Diluição do Setup` : ''})_%0A`+
-            `• Comissão por Venda: ${dadosLead.finalComissao}%0A%0A`+
-            `Aguardamos sua aprovação para emissão da minuta oficial de contrato.`;
+            `• Escopo: ${dadosLead.finalNomeEscopo}%0A`+
+            `• Vigência: ${dadosLead.prazo} Meses%0A%0A`+
+            `💰 *COMPOSIÇÃO FINANCEIRA*%0A`+
+            `*1. Setup de Implementação:*%0A`+
+            `• ${setupTxt}%0A`+
+            `${dadosLead.finalIsSima && dadosLead.finalSetupDiluido > 0 ? `  _(Custo Total de Setup: R$ ${dadosLead.finalSetupTotal.toLocaleString('pt-BR')})_%0A%0A` : '%0A'}`+
+            `*2. Recorrência:*%0A`+
+            `• Mensalidade Total: R$ ${dadosLead.finalMensal.toLocaleString('pt-BR')}/mês${diluicaoTxt}%0A%0A`+
+            `*3. Variável:*%0A`+
+            `• Comissão de Performance: ${dadosLead.finalComissao} por venda%0A%0A`;
+
+        let txtFechamento = dadosLead.perfil === 'cliente' 
+            ? `Aguardo o retorno de vocês com a minuta oficial de contrato para assinarmos.` 
+            : `Aguardamos seu "De Acordo" para seguirmos com a minuta contratual.`;
+
+        let txtFinal = txtAbertura + txtMeio + txtFechamento;
         
-        window.open(`https://api.whatsapp.com/send?phone=554899129069&text=${txt}`, '_blank');
-    }
-
-    function gerarPDF(tema) {
-        const elemento = document.getElementById('cardPropostaFinal');
-        
-        if(tema === 'claro') elemento.classList.add('pdf-claro-mode');
-        else elemento.classList.add('pdf-escuro-mode');
-
-        const opt = {
-            margin:       10,
-            filename:     `Proposta_FNW_${dadosLead.empresa.replace(/\s+/g,'_')}.pdf`,
-            image:        { type: 'jpeg', quality: 1 },
-            html2canvas:  { scale: 2, useCORS: true, backgroundColor: tema === 'claro' ? '#ffffff' : '#09090b' },
-            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
-
-        html2pdf().set(opt).from(elemento).save().then(() => {
-            elemento.classList.remove('pdf-claro-mode');
-            elemento.classList.remove('pdf-escuro-mode');
-        });
+        window.open(`https://api.whatsapp.com/send?phone=554899129069&text=${txtFinal}`, '_blank');
     }
 </script>
 
